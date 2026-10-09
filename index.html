@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BirthdayHappy </title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     EDIT ME — quick content controls
+     Everything a person actually needs to change lives in the
+     CONFIG object near the top of the <script> at the bottom of
+     this file: the name, and the photo / caption for each card.
+     ============================================================ */
+
+  :root{
+    --black:#050305;
+    --black-deep:#020102;
+    --pink:#ff2b7a;
+    --pink-soft:#ff7fae;
+    --rose-gold:#e3b0a8;
+    --rose-gold-light:#f4d6cd;
+    --white:#f8f4f1;
+    --script: 'Dancing Script', cursive;
+    --sans: 'Poppins', sans-serif;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    height:100%;
+    background:var(--black-deep);
+    overflow:hidden;
+    font-family:var(--sans);
+    -webkit-tap-highlight-color:transparent;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+
+  #app{
+    position:relative;
+    width:100%;
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:radial-gradient(ellipse at 50% 20%, #140812 0%, var(--black-deep) 70%);
+  }
+
+  /* Phone-frame stage: full-bleed on real mobile, gently framed on wider viewports */
+  #stage{
+    position:relative;
+    width:100%;
+    max-width:460px;
+    height:100%;
+    max-height:960px;
+    overflow:hidden;
+    background:var(--black);
+    box-shadow:0 0 0 1px rgba(255,255,255,0.04);
+  }
+  @media (min-width:520px){
+    #stage{
+      height:92vh;
+      max-height:900px;
+      border-radius:38px;
+      box-shadow:
+        0 0 0 8px #0c0c0c,
+        0 0 0 9px #232323,
+        0 30px 80px rgba(0,0,0,0.6),
+        0 0 60px rgba(255,43,122,0.08);
+    }
+  }
+
+  .scene{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    visibility:hidden;
+    transition:opacity 900ms ease;
+    text-align:center;
+  }
+  .scene.active{ opacity:1; visibility:visible; }
+
+  /* ---------- Scene 1: Intro / rain / countdown ---------- */
+  #rain-canvas{
+    position:absolute; inset:0; width:100%; height:100%;
+    opacity:0.55;
+  }
+
+  .countdown-num{
+    position:relative;
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:min(28vw,130px);
+    color:var(--white);
+    text-shadow:
+      0 0 12px var(--pink),
+      0 0 34px var(--pink),
+      0 0 70px rgba(255,43,122,0.7);
+    opacity:0;
+    transform:scale(0.6);
+  }
+  .countdown-num.show{
+    animation:countPulse 1.15s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes countPulse{
+    0%{ opacity:0; transform:scale(0.5); }
+    30%{ opacity:1; transform:scale(1.08); }
+    55%{ transform:scale(1); }
+    80%{ opacity:1; }
+    100%{ opacity:0; transform:scale(0.92); }
+  }
+
+  .intro-title{
+    position:relative;
+    font-family:var(--sans);
+    font-weight:500;
+    letter-spacing:0.04em;
+    font-size:clamp(22px,7vw,34px);
+    line-height:1.35;
+    color:var(--white);
+    padding:0 34px;
+    opacity:0;
+  }
+  .intro-title .name{
+    display:block;
+    font-family:var(--script);
+    font-weight:700;
+    font-size:clamp(40px,13vw,64px);
+    color:var(--pink-soft);
+    text-shadow:0 0 22px rgba(255,43,122,0.8), 0 0 60px rgba(255,43,122,0.4);
+    margin-top:6px;
+  }
+  .intro-title.show{ animation:fadeUp 1.4s ease forwards; }
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(16px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .heart-pulse{
+    position:relative;
+    margin-top:22px;
+    width:40px; height:40px;
+    opacity:0;
+  }
+  .heart-pulse.show{ animation:heartIn 1s ease forwards 0.3s; }
+  @keyframes heartIn{ to{ opacity:1; } }
+  .heart-pulse svg{
+    width:100%; height:100%;
+    filter:drop-shadow(0 0 10px var(--pink)) drop-shadow(0 0 26px rgba(255,43,122,0.7));
+    animation:beat 1.15s ease-in-out infinite;
+  }
+  @keyframes beat{
+    0%,100%{ transform:scale(1); }
+    25%{ transform:scale(1.18); }
+    40%{ transform:scale(0.96); }
+  }
+
+  .tap-hint{
+    position:absolute;
+    bottom:38px;
+    font-family:var(--sans);
+    font-weight:300;
+    font-size:12px;
+    letter-spacing:0.14em;
+    color:rgba(248,244,241,0.55);
+    opacity:0;
+    transition:opacity 900ms ease;
+  }
+  .tap-hint.show{ opacity:1; animation:hintBreathe 2.4s ease-in-out infinite; }
+  @keyframes hintBreathe{
+    0%,100%{ opacity:0.35; }
+    50%{ opacity:0.85; }
+  }
+
+  /* ---------- Starfield (used in scenes 2–4) ---------- */
+  .starfield{
+    position:absolute; inset:0; overflow:hidden; pointer-events:none;
+  }
+  .star{
+    position:absolute;
+    width:2px; height:2px;
+    background:var(--white);
+    border-radius:50%;
+    opacity:0.6;
+    animation:twinkle 3.5s ease-in-out infinite;
+  }
+  @keyframes twinkle{
+    0%,100%{ opacity:0.15; }
+    50%{ opacity:0.95; }
+  }
+
+  /* ---------- Scene 2: Envelope ---------- */
+  .envelope-wrap{ position:relative; z-index:2; cursor:pointer; }
+  .envelope{
+    position:relative;
+    width:min(72vw,240px);
+    height:min(48vw,160px);
+  }
+  .env-body{
+    position:absolute; inset:0;
+    background:linear-gradient(160deg,#fdfaf7,var(--white));
+    border-radius:6px;
+    box-shadow:0 0 0 1px rgba(0,0,0,0.03), 0 18px 40px rgba(0,0,0,0.55), 0 0 30px rgba(255,43,122,0.15);
+  }
+  .env-flap{
+    position:absolute; top:0; left:0; width:100%; height:56%;
+    background:linear-gradient(160deg,var(--rose-gold-light),var(--rose-gold));
+    clip-path:polygon(0 0,100% 0,50% 100%);
+    transform-origin:top center;
+    transition:transform 900ms cubic-bezier(.4,0,.2,1);
+    border-radius:6px 6px 0 0;
+  }
+  .envelope.open .env-flap{ transform:rotateX(180deg); }
+  .env-seal{
+    position:absolute; top:38%; left:50%; transform:translate(-50%,-50%);
+    width:34px; height:34px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--pink-soft), var(--pink) 70%);
+    box-shadow:0 0 16px rgba(255,43,122,0.7);
+    display:flex; align-items:center; justify-content:center;
+    transition:opacity 400ms ease;
+    z-index:3;
+  }
+  .env-seal svg{ width:16px; height:16px; }
+  .envelope.open .env-seal{ opacity:0; }
+  .env-letter{
+    position:absolute;
+    left:6%; right:6%; bottom:6%;
+    height:70%;
+    background:var(--white);
+    border-radius:4px;
+    box-shadow:0 -4px 18px rgba(0,0,0,0.25);
+    transform:translateY(0);
+    transition:transform 700ms cubic-bezier(.2,.8,.2,1) 200ms;
+    z-index:1;
+  }
+  .envelope.open .env-letter{ transform:translateY(-22px); }
+
+  .env-caption{
+    margin-top:34px;
+    font-family:var(--script);
+    font-size:22px;
+    color:var(--rose-gold-light);
+    opacity:0.9;
+  }
+
+  /* ---------- Scene 3: Polaroid cards ---------- */
+  .polaroid-scene-inner{
+    position:relative; z-index:2;
+    display:flex; flex-direction:column; align-items:center;
+    width:100%; padding:0 28px;
+  }
+  .headline{
+    font-family:var(--script);
+    font-weight:700;
+    font-size:clamp(26px,8vw,38px);
+    color:var(--pink-soft);
+    text-shadow:0 0 20px rgba(255,43,122,0.55);
+    margin-bottom:22px;
+    min-height:1.3em;
+  }
+  .polaroid{
+    width:min(66vw,230px);
+    background:var(--white);
+    padding:14px 14px 46px 14px;
+    border-radius:3px;
+    box-shadow:0 18px 36px rgba(0,0,0,0.55), 0 0 26px rgba(255,43,122,0.18);
+    transform:rotate(-2deg);
+  }
+  .polaroid-photo{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:2px;
+    background:linear-gradient(135deg,#3a1626,#7a2f4a 45%,#d98a9e);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .polaroid-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .polaroid-photo .placeholder{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    color:rgba(255,255,255,0.75); font-size:11px; letter-spacing:0.06em;
+  }
+  .polaroid-photo .placeholder svg{ width:26px; height:26px; opacity:0.85; }
+  .polaroid-caption{
+    margin-top:12px;
+    font-family:var(--script);
+    font-size:17px;
+    color:#3a2a2e;
+    text-align:center;
+  }
+  .dots{
+    display:flex; gap:7px; margin-top:24px;
+  }
+  .dot{ width:6px; height:6px; border-radius:50%; background:rgba(248,244,241,0.25); transition:background 300ms; }
+  .dot.on{ background:var(--pink); box-shadow:0 0 8px var(--pink); }
+
+  /* ---------- Scene 4: Finale heart ---------- */
+  .heart-stage{ position:relative; width:100%; height:100%; z-index:2; }
+  .mini-polaroid{
+    position:absolute;
+    width:15%;
+    aspect-ratio:1/1.18;
+    background:var(--white);
+    border-radius:2px;
+    padding:6%;
+    box-shadow:0 0 16px rgba(255,43,122,0.55), 0 8px 18px rgba(0,0,0,0.5);
+    opacity:0;
+    transition:
+      left 1600ms cubic-bezier(.16,.84,.3,1),
+      top 1600ms cubic-bezier(.16,.84,.3,1),
+      opacity 900ms ease,
+      transform 1600ms cubic-bezier(.16,.84,.3,1);
+  }
+  .mini-polaroid .ph{
+    width:100%; height:78%; border-radius:1px;
+    background:linear-gradient(135deg,#3a1626,#7a2f4a 45%,#d98a9e);
+  }
+  .mini-polaroid img{ width:100%; height:78%; object-fit:cover; border-radius:1px; display:block; }
+  .mini-polaroid.placed{ opacity:1; }
+
+  .finale-caption{
+    position:absolute;
+    bottom:9%;
+    left:0; right:0;
+    text-align:center;
+    z-index:3;
+    opacity:0;
+    transition:opacity 1200ms ease;
+    padding:0 30px;
+  }
+  .finale-caption.show{ opacity:1; }
+  .finale-caption .line1{
+    font-family:var(--script);
+    font-size:clamp(24px,7.5vw,32px);
+    color:var(--pink-soft);
+    text-shadow:0 0 18px rgba(255,43,122,0.6);
+  }
+  .finale-caption .line2{
+    margin-top:6px;
+    font-family:var(--sans);
+    font-weight:300;
+    font-size:12px;
+    letter-spacing:0.12em;
+    color:rgba(248,244,241,0.55);
+  }
+
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="stage">
+
+    <!-- Scene 1: Intro -->
+    <section class="scene active" id="scene-intro">
+      <canvas id="rain-canvas"></canvas>
+      <div id="countdown-holder"></div>
+      <div class="intro-title" id="intro-title">
+        HAPPY BIRTHDAY 
+        <span class="name" id="intro-name"></span>
+      </div>
+      <div class="heart-pulse" id="intro-heart">
+        <svg viewBox="0 0 32 29" fill="none"><path d="M16 28.5S1 19.6 1 9.6C1 4.6 4.9 1 9.6 1c3 0 5.4 1.5 6.4 3.7C17 2.5 19.4 1 22.4 1 27.1 1 31 4.6 31 9.6c0 10-15 18.9-15 18.9Z" fill="#ff2b7a"/></svg>
+      </div>
+      <div class="tap-hint" id="intro-hint">TAP TO CONTINUE</div>
+    </section>
+
+    <!-- Scene 2: Envelope -->
+    <section class="scene" id="scene-envelope">
+      <div class="starfield" id="stars-envelope"></div>
+      <div class="envelope-wrap" id="envelope-wrap">
+        <div class="envelope" id="envelope">
+          <div class="env-letter"></div>
+          <div class="env-body"></div>
+          <div class="env-flap"></div>
+          <div class="env-seal">
+            <svg viewBox="0 0 32 29" fill="none"><path d="M16 28.5S1 19.6 1 9.6C1 4.6 4.9 1 9.6 1c3 0 5.4 1.5 6.4 3.7C17 2.5 19.4 1 22.4 1 27.1 1 31 4.6 31 9.6c0 10-15 18.9-15 18.9Z" fill="#fff"/></svg>
+          </div>
+        </div>
+        <div class="env-caption">OPEN it</div>
+      </div>
+    </section>
+
+    <!-- Scene 3: Polaroids -->
+    <section class="scene" id="scene-polaroid">
+      <div class="starfield" id="stars-polaroid"></div>
+      <div class="polaroid-scene-inner">
+        <div class="headline" id="polaroid-headline"></div>
+        <div class="polaroid">
+          <div class="polaroid-photo" id="polaroid-photo"></div>
+          <div class="polaroid-caption" id="polaroid-caption"></div>
+        </div>
+        <div class="dots" id="polaroid-dots"></div>
+      </div>
+    </section>
+
+    <!-- Scene 4: Finale -->
+    <section class="scene" id="scene-finale">
+      <div class="starfield" id="stars-finale"></div>
+      <div class="heart-stage" id="heart-stage"></div>
+      <div class="finale-caption" id="finale-caption">
+        <div class="line1" id="finale-line1"></div>
+        <div class="line2">TAP TO RELIVE IT</div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   EDIT ME
+   Change the name below, and fill in each card's caption.
+   To use a real photo instead of the placeholder gradient,
+   set "photo" to an image URL or a base64 data URI, e.g.
+   photo: "https://your-image-link.jpg"
+   Leave photo as null to keep the placeholder frame.
+   ============================================================ */
+const CONFIG = {
+  name: "YUYA",
+  cards: [
+    { headline: "Happy Birthday",                 caption: "Our Sunshine",        photo: null },
+    { headline: "As long as you're smiling...",    caption: "Keep Smiling",        photo: null },
+    { headline: "Our favorite person",              caption: "We are blessed to have you in our live",        photo: null },
+    { headline: "Our World",           caption: "To The Moon and back, forever",        photo: null },
+    { headline: "WE love you",                      caption: "Keep Going",        photo: null }
+  ]
+};
+
+document.getElementById('intro-name').textContent = CONFIG.name;
+document.getElementById('finale-line1').textContent = 'Happy Birthday, ' + CONFIG.name;
+
+/* ---------- Digital rain (canvas) ---------- */
+const canvas = document.getElementById('rain-canvas');
+const ctx = canvas.getContext('2d');
+let stageEl = document.getElementById('stage');
+let cols, drops, rainRAF;
+const glyphs = '01♥•｡ﾟ+*'.split('');
+
+function sizeCanvas(){
+  const r = stageEl.getBoundingClientRect();
+  canvas.width = r.width; canvas.height = r.height;
+  cols = Math.floor(canvas.width / 16);
+  drops = new Array(cols).fill(0).map(()=> Math.random() * -canvas.height / 16);
+}
+function drawRain(){
+  ctx.fillStyle = 'rgba(5,3,5,0.18)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.font = '13px monospace';
+  for(let i=0;i<cols;i++){
+    const g = glyphs[Math.floor(Math.random()*glyphs.length)];
+    const grad = Math.random();
+    ctx.fillStyle = grad < 0.15 ? 'rgba(255,150,190,0.95)' : 'rgba(255,43,122,0.55)';
+    ctx.fillText(g, i*16, drops[i]*16);
+    if(drops[i]*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+    drops[i]++;
+  }
+  rainRAF = requestAnimationFrame(drawRain);
+}
+sizeCanvas();
+drawRain();
+window.addEventListener('resize', sizeCanvas);
+
+/* ---------- Starfields ---------- */
+function buildStars(el, count){
+  if(el.childElementCount) return;
+  for(let i=0;i<count;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*100 + '%';
+    const size = Math.random()*1.6+1;
+    s.style.width = size+'px'; s.style.height = size+'px';
+    s.style.animationDelay = (Math.random()*3.5)+'s';
+    el.appendChild(s);
+  }
+}
+['stars-envelope','stars-polaroid','stars-finale'].forEach(id=>buildStars(document.getElementById(id), 70));
+
+/* ---------- Scene management ---------- */
+const scenes = {
+  intro: document.getElementById('scene-intro'),
+  envelope: document.getElementById('scene-envelope'),
+  polaroid: document.getElementById('scene-polaroid'),
+  finale: document.getElementById('scene-finale'),
+};
+function goTo(name){
+  Object.values(scenes).forEach(s=>s.classList.remove('active'));
+  scenes[name].classList.add('active');
+}
+
+/* ---------- Scene 1: countdown sequence ---------- */
+let introAdvanceReady = false;
+function runIntro(){
+  const holder = document.getElementById('countdown-holder');
+  const seq = ['3','2','1'];
+  let delay = 400;
+  seq.forEach((n)=>{
+    setTimeout(()=>{
+      holder.innerHTML = '';
+      const d = document.createElement('div');
+      d.className = 'countdown-num show';
+      d.textContent = n;
+      holder.appendChild(d);
+    }, delay);
+    delay += 1150;
+  });
+  setTimeout(()=>{
+    holder.innerHTML = '';
+    document.getElementById('intro-title').classList.add('show');
+    document.getElementById('intro-heart').classList.add('show');
+  }, delay + 150);
+  setTimeout(()=>{
+    document.getElementById('intro-hint').classList.add('show');
+    introAdvanceReady = true;
+  }, delay + 2200);
+}
+runIntro();
+
+document.getElementById('scene-intro').addEventListener('click', ()=>{
+  if(!introAdvanceReady) return;
+  cancelAnimationFrame(rainRAF);
+  goTo('envelope');
+});
+
+/* ---------- Scene 2: envelope ---------- */
+const envelope = document.getElementById('envelope');
+let envOpened = false;
+document.getElementById('envelope-wrap').addEventListener('click', ()=>{
+  if(envOpened) return;
+  envOpened = true;
+  envelope.classList.add('open');
+  setTimeout(()=>{ initPolaroids(); goTo('polaroid'); }, 1100);
+});
+
+/* ---------- Scene 3: polaroids ---------- */
+let cardIndex = 0;
+function renderCard(i){
+  const c = CONFIG.cards[i];
+  document.getElementById('polaroid-headline').textContent = c.headline;
+  document.getElementById('polaroid-caption').textContent = c.caption;
+  const photoEl = document.getElementById('polaroid-photo');
+  photoEl.innerHTML = c.photo
+    ? '<img src="'+c.photo+'" alt="">'
+    : '<div class="placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="15" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2h5L16 6"/></svg><span>ADD PHOTO</span></div>';
+  const dotsEl = document.getElementById('polaroid-dots');
+  dotsEl.innerHTML = '';
+  CONFIG.cards.forEach((_,idx)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (idx===i ? ' on' : '');
+    dotsEl.appendChild(d);
+  });
+}
+function initPolaroids(){ cardIndex = 0; renderCard(0); }
+document.getElementById('scene-polaroid').addEventListener('click', ()=>{
+  cardIndex++;
+  if(cardIndex >= CONFIG.cards.length){
+    buildHeart();
+    goTo('finale');
+  } else {
+    renderCard(cardIndex);
+  }
+});
+
+/* ---------- Scene 4: finale heart ---------- */
+function heartPoint(t, scale){
+  const x = 16*Math.pow(Math.sin(t),3);
+  const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+  return { x: x*scale, y: -y*scale };
+}
+let heartBuilt = false;
+function buildHeart(){
+  const stage = document.getElementById('heart-stage');
+  stage.innerHTML = '';
+  const rect = stage.getBoundingClientRect();
+  const cx = rect.width/2, cy = rect.height*0.44;
+  const scale = Math.min(rect.width, rect.height) / 34;
+  const total = 16;
+  const cards = CONFIG.cards;
+
+  for(let i=0;i<total;i++){
+    const t = (i/total) * Math.PI * 2;
+    const p = heartPoint(t, scale);
+    const targetLeft = cx + p.x;
+    const targetTop = cy + p.y;
+
+    const el = document.createElement('div');
+    el.className = 'mini-polaroid';
+    const card = cards[i % cards.length];
+    el.innerHTML = card.photo
+      ? '<img src="'+card.photo+'" alt="">'
+      : '<div class="ph"></div>';
+
+    const startAngle = Math.random()*Math.PI*2;
+    const startRadius = Math.max(rect.width, rect.height) * 0.65;
+    const startLeft = cx + Math.cos(startAngle)*startRadius;
+    const startTop = cy + Math.sin(startAngle)*startRadius;
+
+    el.style.left = startLeft + 'px';
+    el.style.top = startTop + 'px';
+    el.style.transform = 'translate(-50%,-50%) rotate(' + (Math.random()*90-45) + 'deg) scale(0.6)';
+    stage.appendChild(el);
+
+    setTimeout(()=>{
+      el.classList.add('placed');
+      el.style.left = targetLeft + 'px';
+      el.style.top = targetTop + 'px';
+      const rot = (Math.random()*16-8);
+      el.style.transform = 'translate(-50%,-50%) rotate(' + rot + 'deg) scale(1)';
+    }, 250 + i*90);
+  }
+
+  setTimeout(()=>{
+    document.getElementById('finale-caption').classList.add('show');
+  }, 250 + total*90 + 700);
+
+  heartBuilt = true;
+}
+
+document.getElementById('scene-finale').addEventListener('click', ()=>{
+  location.reload();
+});
+
+window.addEventListener('resize', ()=>{ if(heartBuilt) buildHeart(); });
+</script>
+</body>
+</html>
